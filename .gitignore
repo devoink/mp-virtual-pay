@@ -1,0 +1,9 @@
+node_modules
+*.log
+.DS_Store
+
+# Yarn 4 本地状态（非 zero-install）
+.yarn/install-state.gz
+
+# 若误开 PnP，勿提交
+.pnp.*

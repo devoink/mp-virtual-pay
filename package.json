@@ -1,0 +1,47 @@
+{
+  "name": "mp-virtual-pay",
+  "version": "0.0.1",
+  "description": "微信小程序 wx.requestVirtualPayment 封装：下单与签名由调用方注入（transaction），可选支付后轮询（pollOrder）；适用于微信原生开发和UniApp开发。",
+  "author": "devo <devo@devo.ink>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devoink/mp-virtual-pay.git"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "yarn build"
+  },
+  "packageManager": "yarn@4.11.0",
+  "peerDependencies": {
+    "miniprogram-api-typings": "^5.0.0"
+  },
+  "devDependencies": {
+    "miniprogram-api-typings": "^5.1.2",
+    "typescript": "~5.4.0"
+  },
+  "keywords": [
+    "uniapp",
+    "weixin",
+    "miniprogram",
+    "virtual-payment",
+    "requestVirtualPayment",
+    "mp-virtual-pay"
+  ]
+}
