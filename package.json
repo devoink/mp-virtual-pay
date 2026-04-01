@@ -1,6 +1,6 @@
 {
   "name": "mp-virtual-pay",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "微信小程序 wx.requestVirtualPayment 封装：下单与签名由调用方注入（transaction），可选支付后轮询（pollOrder）；适用于微信原生开发和UniApp开发。",
   "author": "devo <devo@devo.ink>",
   "license": "MIT",
