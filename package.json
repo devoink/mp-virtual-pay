@@ -26,7 +26,9 @@
   "sideEffects": false,
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "prepublishOnly": "yarn build"
+    "prepublishOnly": "yarn build",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "packageManager": "yarn@4.11.0",
   "peerDependencies": {
@@ -34,7 +36,8 @@
   },
   "devDependencies": {
     "miniprogram-api-typings": "^5.1.2",
-    "typescript": "~5.4.0"
+    "typescript": "~5.4.0",
+    "vitest": "^4.1.2"
   },
   "keywords": [
     "uniapp",

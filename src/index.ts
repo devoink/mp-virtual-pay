@@ -1,4 +1,14 @@
 export { MpWeixinVirtualPay } from './MpWeixinVirtualPay'
-export type { MpWeixinVirtualPayOptions } from './MpWeixinVirtualPay'
+export type {
+  CreateVirtualPaymentListeners,
+  CreateVirtualPaymentResult,
+  MpWeixinVirtualPayOptions,
+} from './MpWeixinVirtualPay'
 
-export { isVirtualPayAvailable, VirtualPaymentError, isUserCancelError } from './core'
+export {
+  isVirtualPayAvailable,
+  VirtualPaymentError,
+  isUserCancelError,
+  isNotSupportedError,
+  isFailedError,
+} from './core'

@@ -3,9 +3,23 @@ import {
   VirtualPaymentError,
   computeVirtualPayAvailabilitySnapshot,
   isMpWeixinRuntime,
+  normalizeToVirtualPaymentError,
 } from './core'
 import type { PollOrderOptions, PollOrderRoundOutcome, PrepareVirtualPaymentFn, VirtualPayAvailabilitySnapshot } from './types'
 import { delay, objectToJsonString } from './utils'
+
+export interface CreateVirtualPaymentListeners {
+  onSuccess?: (result: WechatMiniprogram.RequestCommonPaymentSuccessCallbackResult) => void | Promise<void>
+  onCanceled?: (error: VirtualPaymentError) => void | Promise<void>
+  onNotSupported?: (error: VirtualPaymentError) => void | Promise<void>
+  onFailed?: (error: VirtualPaymentError) => void | Promise<void>
+}
+
+export type CreateVirtualPaymentResult =
+  | { status: 'success', result: WechatMiniprogram.RequestCommonPaymentSuccessCallbackResult }
+  | { status: 'canceled', error: VirtualPaymentError }
+  | { status: 'not_supported', error: VirtualPaymentError }
+  | { status: 'failed', error: VirtualPaymentError }
 
 export interface MpWeixinVirtualPayOptions {
   /** 为 `true` 时在控制台输出 `[MiniProgram Virtual Pay]` 前缀的调试日志（流程节点、轮询、`isVirtualPayAvailable` 依据）。 */
@@ -63,9 +77,57 @@ export class MpWeixinVirtualPay {
    *           ↓
    * 返回微信 `success` 入参
    *
+   * 可选 `listeners`：在 `resolve` / `reject` **之前**按结果调用对应回调（可只传部分字段）；**不改变** Promise 语义，失败仍会 `reject`。若同时使用监听器与 `try/catch`（或 `.catch`），注意不要重复处理业务逻辑（监听器适合埋点等）。
+   *
    * @returns 成功 resolve 为微信 `success` 入参；失败 reject 为 `VirtualPaymentError`。
    */
-  public async createVirtualPayment(): Promise<WechatMiniprogram.RequestCommonPaymentSuccessCallbackResult> {
+  public async createVirtualPayment(
+    listeners?: CreateVirtualPaymentListeners,
+  ): Promise<WechatMiniprogram.RequestCommonPaymentSuccessCallbackResult> {
+    try {
+      const result = await this.runCreateVirtualPayment()
+      try {
+        await invokeListener(listeners?.onSuccess, result)
+      }
+      catch (listenerErr) {
+        throw normalizeToVirtualPaymentError(listenerErr)
+      }
+      return result
+    }
+    catch (e) {
+      const err = normalizeToVirtualPaymentError(e)
+      try {
+        await dispatchErrorListeners(listeners, err)
+      }
+      catch (listenerErr) {
+        throw normalizeToVirtualPaymentError(listenerErr)
+      }
+      throw err
+    }
+  }
+
+  /**
+   * 与 `createVirtualPayment` 相同流程，但以判别联合返回，**不因业务原因 reject**（`canceled` / `not_supported` / `failed` 均体现在 `status`）。
+   */
+  public async createVirtualPaymentResult(): Promise<CreateVirtualPaymentResult> {
+    try {
+      const result = await this.runCreateVirtualPayment()
+      return { status: 'success', result }
+    }
+    catch (e) {
+      const err = normalizeToVirtualPaymentError(e)
+      switch (err.reason) {
+        case 'canceled':
+          return { status: 'canceled', error: err }
+        case 'not_supported':
+          return { status: 'not_supported', error: err }
+        case 'failed':
+          return { status: 'failed', error: err }
+      }
+    }
+  }
+
+  private async runCreateVirtualPayment(): Promise<WechatMiniprogram.RequestCommonPaymentSuccessCallbackResult> {
     this.dbg('createVirtualPayment 开始')
     if (!isMpWeixinRuntime()) {
       this.dbg('非微信小程序运行时，createVirtualPayment 直接 not_supported')
@@ -109,7 +171,6 @@ export class MpWeixinVirtualPay {
           fail: (err: WechatMiniprogram.RequestVirtualPaymentFailCallbackErr) => {
             this.dbg('requestVirtualPayment fail', err)
             if (err?.errCode === VIRTUAL_PAY_ERR_USER_CANCEL) {
-              // 用户取消支付
               reject(new VirtualPaymentError('canceled', err?.errMsg ?? '用户取消支付', err))
               return
             }
@@ -242,5 +303,35 @@ export class MpWeixinVirtualPay {
         })
         .catch(fail)
     })
+  }
+}
+
+async function invokeListener<A extends unknown[]>(
+  fn: ((...args: A) => void | Promise<void>) | undefined,
+  ...args: A
+): Promise<void> {
+  if (!fn) {
+    return
+  }
+  await Promise.resolve(fn(...args))
+}
+
+async function dispatchErrorListeners(
+  listeners: CreateVirtualPaymentListeners | undefined,
+  err: VirtualPaymentError,
+): Promise<void> {
+  if (!listeners) {
+    return
+  }
+  switch (err.reason) {
+    case 'canceled':
+      await invokeListener(listeners.onCanceled, err)
+      break
+    case 'not_supported':
+      await invokeListener(listeners.onNotSupported, err)
+      break
+    case 'failed':
+      await invokeListener(listeners.onFailed, err)
+      break
   }
 }

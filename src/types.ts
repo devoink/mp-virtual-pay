@@ -23,7 +23,7 @@ export type PrepareVirtualPaymentFn = () => Promise<VirtualPaymentPayload>
 
 /**
  * 单次轮询：通过 `end()` / `next()` 只表达「本轮是否结束」，不通过返回值携带业务结果。
- * - `end()`：结束轮询，整体成功，`createVirtualPayment` resolve 为微信 `success` 结果。
+ * - `end()`：结束轮询，整体成功，`createVirtualPayment` / `createVirtualPaymentResult` 视为成功。
  * - `next()`：未结束，间隔后继续下一轮。
  * - 在回调内 `throw`：整体失败，`createVirtualPayment` reject。
  */

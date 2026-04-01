@@ -37,6 +37,26 @@ export function isUserCancelError(error: VirtualPaymentError | Error): boolean {
   return (error as { errCode?: number })?.errCode === VIRTUAL_PAY_ERR_USER_CANCEL
 }
 
+export function isNotSupportedError(error: unknown): error is VirtualPaymentError {
+  return error instanceof VirtualPaymentError && error.reason === 'not_supported'
+}
+
+export function isFailedError(error: unknown): error is VirtualPaymentError {
+  return error instanceof VirtualPaymentError && error.reason === 'failed'
+}
+
+/**
+ * 将任意异常规范为 `VirtualPaymentError`（与 `createVirtualPayment` 主流程 catch 一致）。
+ * 供包内使用（如监听器 `throw` 后的统一 reject）；**不**从包入口 `mp-virtual-pay` 导出。
+ */
+export function normalizeToVirtualPaymentError(e: unknown): VirtualPaymentError {
+  if (e instanceof VirtualPaymentError) {
+    return e
+  }
+  const message = e instanceof Error ? e.message : (e as WechatMiniprogram.RequestVirtualPaymentFailCallbackErr)?.errMsg ?? '虚拟支付失败'
+  return new VirtualPaymentError('failed', message, e instanceof Error ? e : (e as WechatMiniprogram.RequestVirtualPaymentFailCallbackErr))
+}
+
 /**
  * 运行时判断是否为微信小程序：依赖微信原生 `wx`。
  * `wx.getAccountInfoSync().miniProgram` 仅在小程序运行环境存在，可区分于仅注入 JSSDK `wx` 的 WebView 等场景。
