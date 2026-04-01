@@ -218,7 +218,7 @@ yarn install
 yarn build
 ```
 
-产物输出到 `dist/`。发布前 `prepublishOnly` 会自动执行 `yarn build`。
+产物输出到 `dist/`（目录已列入 `.gitignore`，**不提交到 Git**；克隆后需本地执行 `yarn build`）。执行 `npm publish` / `yarn npm publish` 时，`prepublishOnly` 会先跑 `yarn build`，再打包含 `dist` 的包。
 
 ### 单元测试
 
