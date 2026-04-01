@@ -263,7 +263,8 @@ export class MpWeixinVirtualPay {
           return
         }
         settled = true
-        reject(new VirtualPaymentError('failed', `订单状态查询超时（单轮超时：${queryTimeoutMs}ms）`, null))
+        // 单轮超时不视为整体失败，按 next 进入下一轮。
+        resolve('next')
       }, queryTimeoutMs)
 
       const finish = (result: PollOrderRoundOutcome) => {

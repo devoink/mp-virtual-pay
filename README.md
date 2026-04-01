@@ -163,7 +163,7 @@ new MpWeixinVirtualPay({
   },
   pollOrder: {
     intervalMs: 1500, // 默认 1500
-    queryTimeoutMs: 10000, // 默认 10000，单轮 query 超时则失败
+    queryTimeoutMs: 10000, // 默认 10000，单轮 query 超时按 next 进入下一轮
     maxAttempts: 60, // 默认 60，最后一轮仍 next 则报「订单状态查询超时」
     query: async ({ orderid, end, next }) => {
       const status = await yourApi.getOrderStatus(orderid);

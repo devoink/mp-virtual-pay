@@ -37,7 +37,7 @@ export interface PollOrderOptions {
   query: PollOrderQueryFn
   /** 两次查询之间的间隔（ms），默认 1500 */
   intervalMs?: number
-  /** 单轮 query 超时（ms），默认 10000；超时后本轮按失败处理 */
+  /** 单轮 query 超时（ms），默认 10000；超时后本轮按 `next` 处理并进入下一轮 */
   queryTimeoutMs?: number
   /** 最大轮询次数（含第 1 次），默认 60；最后一轮仍 `next` 则 reject「订单状态查询超时」 */
   maxAttempts?: number

@@ -128,4 +128,68 @@ describe('MpWeixinVirtualPay', () => {
       message: 'listener boom',
     })
   })
+
+
+  it('pollOrder single-round timeout continues to next round', async () => {
+    installWxForPay()
+    let calls = 0
+    const pay = new MpWeixinVirtualPay({
+      transaction: async () => ({
+        orderid: 'o1',
+        mode: 'm',
+        paySig: 'p',
+        signData: {},
+        signature: 's',
+      }),
+      pollOrder: {
+        intervalMs: 0,
+        queryTimeoutMs: 10,
+        maxAttempts: 3,
+        query: ({ end }) => {
+          calls += 1
+          if (calls === 1) {
+            return new Promise<void>(() => {
+              // keep pending to trigger single-round timeout
+            })
+          }
+          end()
+        },
+      },
+    })
+
+    const result = await pay.createVirtualPayment()
+    expect(result.errMsg).toBe('ok')
+    expect(calls).toBe(2)
+  })
+
+  it('pollOrder reaches maxAttempts after repeated single-round timeout', async () => {
+    installWxForPay()
+    let calls = 0
+    const pay = new MpWeixinVirtualPay({
+      transaction: async () => ({
+        orderid: 'o1',
+        mode: 'm',
+        paySig: 'p',
+        signData: {},
+        signature: 's',
+      }),
+      pollOrder: {
+        intervalMs: 0,
+        queryTimeoutMs: 10,
+        maxAttempts: 2,
+        query: () => {
+          calls += 1
+          return new Promise<void>(() => {
+            // always pending, every round times out then continues
+          })
+        },
+      },
+    })
+
+    await expect(pay.createVirtualPayment()).rejects.toMatchObject({
+      reason: 'failed',
+      message: '订单状态查询超时',
+    })
+    expect(calls).toBe(2)
+  })
 })
