@@ -92,6 +92,7 @@ describe('MpWeixinVirtualPay', () => {
   it('invokes onSuccess before resolve', async () => {
     installWxForPay()
     const onSuccess = vi.fn()
+    const onBeforeComplete = vi.fn()
     const pay = new MpWeixinVirtualPay({
       transaction: async () => ({
         orderid: 'o1',
@@ -101,9 +102,47 @@ describe('MpWeixinVirtualPay', () => {
         signature: 's',
       }),
     })
-    await pay.createVirtualPayment({ onSuccess })
+    await pay.createVirtualPayment({ onBeforeComplete, onSuccess })
+    expect(onBeforeComplete).toHaveBeenCalledTimes(1)
     expect(onSuccess).toHaveBeenCalledTimes(1)
+    expect(onBeforeComplete.mock.invocationCallOrder[0]).toBeLessThan(onSuccess.mock.invocationCallOrder[0])
     expect(onSuccess.mock.calls[0][0]).toMatchObject({ errMsg: 'ok' })
+  })
+
+  it('invokes onBeforeComplete before onCanceled', async () => {
+    const requestVirtualPayment = vi.fn(
+      (opts: { fail?: (e: WechatMiniprogram.RequestVirtualPaymentFailCallbackErr) => void }) => {
+        opts.fail?.({ errMsg: 'cancel', errCode: VIRTUAL_PAY_ERR_USER_CANCEL })
+      },
+    )
+    ;(globalThis as { wx?: unknown }).wx = {
+      getAccountInfoSync: () => ({ miniProgram: {} }),
+      canIUse: () => false,
+      getAppBaseInfo: () => ({ SDKVersion: '3.0.0', version: '8.0.70' }),
+      getDeviceInfo: () => ({ platform: 'android', system: 'Android 12' }),
+      requestVirtualPayment,
+    }
+    const onBeforeComplete = vi.fn()
+    const onCanceled = vi.fn()
+    const pay = new MpWeixinVirtualPay({
+      transaction: async () => ({
+        orderid: 'o1',
+        mode: 'm',
+        paySig: 'p',
+        signData: {},
+        signature: 's',
+      }),
+    })
+    await expect(
+      pay.createVirtualPayment({
+        onBeforeComplete,
+        onCanceled,
+      }),
+    ).rejects.toMatchObject({ reason: 'canceled' })
+    expect(onBeforeComplete).toHaveBeenCalledTimes(1)
+    expect(onBeforeComplete.mock.calls[0][0]).toMatchObject({ status: 'canceled' })
+    expect(onCanceled).toHaveBeenCalledTimes(1)
+    expect(onBeforeComplete.mock.invocationCallOrder[0]).toBeLessThan(onCanceled.mock.invocationCallOrder[0])
   })
 
   it('listener throw becomes failed VirtualPaymentError', async () => {

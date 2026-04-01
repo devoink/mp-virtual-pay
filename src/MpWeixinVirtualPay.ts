@@ -9,6 +9,11 @@ import type { PollOrderOptions, PollOrderRoundOutcome, PrepareVirtualPaymentFn, 
 import { delay, objectToJsonString } from './utils'
 
 export interface CreateVirtualPaymentListeners {
+  onBeforeComplete?: (payload: {
+    status: 'success' | 'canceled' | 'not_supported' | 'failed'
+    result?: WechatMiniprogram.RequestCommonPaymentSuccessCallbackResult
+    error?: VirtualPaymentError
+  }) => void | Promise<void>
   onSuccess?: (result: WechatMiniprogram.RequestCommonPaymentSuccessCallbackResult) => void | Promise<void>
   onCanceled?: (error: VirtualPaymentError) => void | Promise<void>
   onNotSupported?: (error: VirtualPaymentError) => void | Promise<void>
@@ -87,6 +92,7 @@ export class MpWeixinVirtualPay {
     try {
       const result = await this.runCreateVirtualPayment()
       try {
+        await invokeBeforeComplete(listeners, { status: 'success', result })
         await invokeListener(listeners?.onSuccess, result)
       }
       catch (listenerErr) {
@@ -97,6 +103,7 @@ export class MpWeixinVirtualPay {
     catch (e) {
       const err = normalizeToVirtualPaymentError(e)
       try {
+        await invokeBeforeComplete(listeners, { status: err.reason, error: err })
         await dispatchErrorListeners(listeners, err)
       }
       catch (listenerErr) {
@@ -335,4 +342,15 @@ async function dispatchErrorListeners(
       await invokeListener(listeners.onFailed, err)
       break
   }
+}
+
+async function invokeBeforeComplete(
+  listeners: CreateVirtualPaymentListeners | undefined,
+  payload: {
+    status: 'success' | 'canceled' | 'not_supported' | 'failed'
+    result?: WechatMiniprogram.RequestCommonPaymentSuccessCallbackResult
+    error?: VirtualPaymentError
+  },
+): Promise<void> {
+  await invokeListener(listeners?.onBeforeComplete, payload)
 }

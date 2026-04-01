@@ -81,7 +81,7 @@ try {
 
 ### 可选监听器（与 Promise 链并存）
 
-`createVirtualPayment` 的第一个参数为可选 `listeners`，字段均可省略、可只传其中几个。在即将 `resolve` / `reject` **之前**调用与结果 **精确对应** 的回调：`canceled` → `onCanceled`，`not_supported` → `onNotSupported`，`failed` → `onFailed`；**不会**把取消或不支持自动路由到 `onFailed`。
+`createVirtualPayment` 的第一个参数为可选 `listeners`，字段均可省略、可只传其中几个。在即将 `resolve` / `reject` **之前**会先调用 `onBeforeComplete`（若有），随后再调用与结果 **精确对应** 的回调：`success` → `onSuccess`，`canceled` → `onCanceled`，`not_supported` → `onNotSupported`，`failed` → `onFailed`；**不会**把取消或不支持自动路由到 `onFailed`。
 
 **Promise 语义不变**：成功仍 `resolve`，失败仍 `reject`。若既写了监听器又在 `catch` / `.catch` 里处理业务，**两边都会执行**（先监听器，再 settle），建议监听器只做埋点/日志，业务分支放在一侧，避免重复处理。
 
@@ -193,7 +193,7 @@ new MpWeixinVirtualPay({
 
 ### `CreateVirtualPaymentListeners`
 
-可选字段：`onSuccess`、`onCanceled`、`onNotSupported`、`onFailed`；均可为异步函数。
+可选字段：`onBeforeComplete`、`onSuccess`、`onCanceled`、`onNotSupported`、`onFailed`；均可为异步函数。
 
 ### `CreateVirtualPaymentResult`
 
